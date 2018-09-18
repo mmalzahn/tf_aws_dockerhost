@@ -1,5 +1,5 @@
 resource "aws_instance" "testmachine" {
-  count                       = "${var.anzahlInstanzen}"
+  count                       = "1"
   ami                         = "${data.aws_ami.dockerhostPackerAmi.id}"
   instance_type               = "${var.instance_type}"
   subnet_id                   = "${var.external ? element(data.terraform_remote_state.baseInfra.subnet_ids_dmz, count.index):element(data.terraform_remote_state.baseInfra.subnet_ids_backend, count.index)}"
@@ -30,13 +30,23 @@ resource "aws_instance" "testmachine" {
               )}"
 }
 
-resource "aws_route53_record" "testmachine" {
-  count           = "${var.anzahlInstanzen}"
+resource "aws_route53_record" "testmachine_intern" {
   allow_overwrite = "true"
   depends_on      = ["aws_instance.testmachine"]
-  name            = "${random_string.dnshostname.result}-${count.index}"
+  name            = "${random_string.dnshostname.result}-intern"
   ttl             = "60"
   type            = "A"
-  records         = ["${var.external ? element(aws_instance.testmachine.*.public_ip,count.index) : element(aws_instance.testmachine.*.private_ip,count.index)}"]
+  records         = ["${aws_instance.testmachine.private_ip}"]
+  zone_id         = "${data.terraform_remote_state.baseInfra.dns_zone_id}"
+}
+
+resource "aws_route53_record" "testmachine_extern" {
+  count           = "${var.external ? 1 : 0}"
+  allow_overwrite = "true"
+  depends_on      = ["aws_instance.testmachine"]
+  name            = "${random_string.dnshostname.result}-extern"
+  ttl             = "60"
+  type            = "A"
+  records         = ["${aws_instance.testmachine.public_ip}"]
   zone_id         = "${data.terraform_remote_state.baseInfra.dns_zone_id}"
 }

@@ -15,7 +15,7 @@
             "source_ami": "ami-0bdb1d6c15a40392c",
             "instance_type": "t2.micro",
             "ssh_username": "ec2-user",
-            "ami_name": "tf-autobuildDockerhost{{timestamp}}",
+            "ami_name": "autobuildSingleDockerhost{{timestamp}}",
             "force_deregister": true,
             "force_delete_snapshot": true,
             "tags": {
