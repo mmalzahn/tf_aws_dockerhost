@@ -5,6 +5,8 @@ resource "aws_instance" "testmachine" {
   subnet_id                   = "${var.external ? element(data.terraform_remote_state.baseInfra.subnet_ids_dmz, count.index):element(data.terraform_remote_state.baseInfra.subnet_ids_backend, count.index)}"
   key_name                    = "${random_string.dnshostname.result}"
   associate_public_ip_address = "${var.external}"
+  volume_tags                 = "${local.common_tags}"
+  user_data                   = "${data.template_file.installscript.rendered}"
 
   vpc_security_group_ids = [
     "${aws_security_group.SG_Docker_IN_intern.*.id}",
@@ -15,10 +17,11 @@ resource "aws_instance" "testmachine" {
   ]
 
   lifecycle {
-    ignore_changes = ["tags.tf_created", "volume_tags.tf_created"]
+    ignore_changes = [
+      "tags.tf_created",
+      "volume_tags.tf_created",
+    ]
   }
-
-  volume_tags = "${local.common_tags}"
 
   tags = "${merge(local.common_tags,
             map(
@@ -36,22 +39,4 @@ resource "aws_route53_record" "testmachine" {
   type            = "A"
   records         = ["${var.external ? element(aws_instance.testmachine.*.public_ip,count.index) : element(aws_instance.testmachine.*.private_ip,count.index)}"]
   zone_id         = "${data.terraform_remote_state.baseInfra.dns_zone_id}"
-}
-
-data "template_file" "startSshScript" {
-  count    = "${var.anzahlInstanzen}"
-  template = "${file("tpl/start_ssh.tpl")}"
-
-  vars {
-    random_port      = "${element(random_integer.randomScriptPort.*.result,count.index)}"
-    userid           = "${random_string.dnshostname.result}"
-    host_fqdn        = "${element(aws_route53_record.testmachine.*.fqdn,count.index)}"
-    bastionhost_fqdn = "${element(data.terraform_remote_state.baseInfra.bastion_dns,0)}"
-  }
-}
-
-resource "local_file" "connectSshScript" {
-  count    = "${var.anzahlInstanzen}"
-  content  = "${element(data.template_file.startSshScript.*.rendered,count.index)}"
-  filename = "${path.module}/start_ssh-${count.index}_connection.ps1"
 }

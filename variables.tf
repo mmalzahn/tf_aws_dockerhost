@@ -14,6 +14,9 @@ variable "remote_state_bucket_region" {
 
 variable "project_name" {}
 
+variable "uni_id" {}
+
+
 variable "instance_type" {
   default = "t2.micro"
 }
