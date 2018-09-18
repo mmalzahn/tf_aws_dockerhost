@@ -25,11 +25,18 @@ data "terraform_remote_state" "baseInfra" {
   }
 }
 
+data "aws_ami" "dockerhostPackerAmi" {
+  filter {
+    name   = "tag:tf_packerid"
+    values = ["docker002"]
+  }
+
+  owners      = ["681337066511"]
+  most_recent = true
+}
 resource "random_integer" "randomScriptPort" {
-  #count = "${lookup(var.amis_accesss,var.testOs)=="rdp" ? var.anzahlInstanzen : 0}"
   min   = 12000
   max   = 14000
-  seed  = "${count.index}"
 }
 
 resource "random_string" "dnshostname" {
