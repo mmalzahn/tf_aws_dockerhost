@@ -4,17 +4,17 @@ resource "tls_private_key" "private_key" {
 
 resource "local_file" "privateKeyFile" {
   content  = "${tls_private_key.private_key.private_key_pem}"
-  filename = "${path.module}/keys/${random_string.dnshostname.result}.key.pem"
+  filename = "${path.module}/keys/${terraform.workspace}/${random_string.dnshostname.result}.key.pem"
 }
 
 resource "local_file" "publicKeyFile" {
   content  = "${tls_private_key.private_key.public_key_pem}"
-  filename = "${path.module}/keys/${random_string.dnshostname.result}.pem"
+  filename = "${path.module}/keys/${terraform.workspace}/${random_string.dnshostname.result}.pem"
 }
 
 resource "local_file" "publicKeyFileOpenSsh" {
   content  = "${tls_private_key.private_key.public_key_openssh}"
-  filename = "${path.module}/keys/${random_string.dnshostname.result}_openssh.pub"
+  filename = "${path.module}/keys/${terraform.workspace}/${random_string.dnshostname.result}_openssh.pub"
 }
 resource "aws_s3_bucket_object" "uploadPubkey" {
   bucket = "${data.terraform_remote_state.baseInfra.s3PubKeyBucket_name}"

@@ -1,0 +1,88 @@
+{
+    "variables": {
+        "responsible": "",
+        "packerId": "",
+        "project": "",
+        "projectprefix": "",
+        "region": "eu-west-1"
+    },
+    "builders": [
+        {
+            "type": "amazon-ebs",
+            "access_key": "{{user `aws_access_key`}}",
+            "secret_key": "{{user `aws_secret_key`}}",
+            "region": "{{user `region`}}",
+            "source_ami": "ami-0bdb1d6c15a40392c",
+            "instance_type": "t2.micro",
+            "ssh_username": "ec2-user",
+            "ami_name": "tf-autobuildDockerhost{{timestamp}}",
+            "force_deregister": true,
+            "force_delete_snapshot": true,
+            "tags": {
+                "Name": "{{user `projectprefix`}}autoBuildDockerHost",
+                "responsible": "{{user `responsible`}}",
+                "tf_packer": "1",
+                "tf_responsible": "{{user `responsible`}}",
+                "tf_project": "{{user `project`}}",
+                "tf_packerid": "{{user `packerId`}}"
+            },
+            "run_tags": {
+                "Name": "{{user `projectprefix`}}autoBuildDockerHost",
+                "responsible": "{{user `responsible`}}",
+                "tf_packer": "1",
+                "tf_responsible": "{{user `responsible`}}",
+                "tf_project": "{{user `project`}}",
+                "tf_packerid": "{{user `packerId`}}"
+            },
+            "run_volume_tags": {
+                "Name": "{{user `projectprefix`}}autoBuildDockerHost",
+                "responsible": "{{user `responsible`}}",
+                "tf_packer": "1",
+                "tf_responsible": "{{user `responsible`}}",
+                "tf_project": "{{user `project`}}",
+                "tf_packerid": "{{user `packerId`}}"
+            },
+            "snapshot_tags": {
+                "Name": "{{user `projectprefix`}}autoBuildDockerHost",
+                "responsible": "{{user `responsible`}}",
+                "tf_packer": "1",
+                "tf_responsible": "{{user `responsible`}}",
+                "tf_project": "{{user `project`}}",
+                "tf_packerid": "{{user `packerId`}}"
+            }
+        }
+    ],
+    "provisioners": [
+        {
+            "type": "shell",
+            "inline": [
+                "sudo yum update -y",
+                "sudo yum install -y amazon-efs-utils docker git",
+                "sudo systemctl enable docker",
+                "sudo curl -L https://github.com/docker/compose/releases/download/1.22.0/docker-compose-`uname -s`-`uname -m` -o /usr/local/bin/docker-compose",
+                "sudo chmod +x /usr/local/bin/docker-compose",
+                "sudo usermod -a -G docker ec2-user",
+                "sudo mkdir /efs",
+                "sudo chmod 777 /efs"
+            ]
+        },
+        {
+            "destination": "/home/ec2-user/override.conf",
+            "source": "src/override.conf",
+            "type": "file"
+        },
+        {
+            "type": "shell",
+            "inline": [
+                "sudo mkdir /etc/systemd/system/docker.service.d",
+                "sudo chown root.root /etc/systemd/system/docker.service.d",
+                "sudo chmod 755 /etc/systemd/system/docker.service.d",
+                "sudo mv /home/ec2-user/override.conf /etc/systemd/system/docker.service.d/override.conf",
+                "sudo chown root.root /etc/systemd/system/docker.service.d/override.conf",
+                "sudo chmod 644 /etc/systemd/system/docker.service.d/override.conf",
+                "sudo systemctl daemon-reload",
+                "sudo systemctl start docker"
+            ]
+        }
+    ]
+}

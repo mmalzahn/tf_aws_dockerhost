@@ -1,75 +1,14 @@
-resource "aws_security_group" "SG_RDP_IN_extern" {
-  count       = "${var.external ? lookup(var.amis_accesss,var.testOs) == "rdp" ? 1 : 0 : 0}"
-  name        = "${local.resource_prefix}SG_RDP_IN_extern"
-  description = "Allow RDP Management inbound traffic fuer Projekt ${var.project_name}"
-  vpc_id      = "${data.terraform_remote_state.baseInfra.vpc_id}"
-
-  ingress {
-    from_port       = "3389"
-    to_port         = "3389"
-    protocol        = "tcp"
-    cidr_blocks     = ["0.0.0.0/0"]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 65534
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  lifecycle {
-    ignore_changes = ["tags.tf_created"]
-  }
-
-  tags = "${merge(local.common_tags,
-            map(
-              "Name", "${local.resource_prefix}SG_RDP_IN_extern"
-              )
-              )}"
-}
-resource "aws_security_group" "SG_RDP_IN_intern" {
-  count       = "${var.external ? 0 : lookup(var.amis_accesss,var.testOs) == "rdp" ? 1 : 0 }"
-  name        = "${local.resource_prefix}SG_RDP_IN_intern"
-  description = "Allow RDP Management inbound traffic fuer Projekt ${var.project_name}"
-  vpc_id      = "${data.terraform_remote_state.baseInfra.vpc_id}"
-
-  ingress {
-    from_port       = "3389"
-    to_port         = "3389"
-    protocol        = "tcp"
-    security_groups = ["${data.terraform_remote_state.baseInfra.bastion_sg}"]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 65534
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  lifecycle {
-    ignore_changes = ["tags.tf_created"]
-  }
-
-  tags = "${merge(local.common_tags,
-            map(
-              "Name", "${local.resource_prefix}SG_RDP_IN_intern"
-              )
-              )}"
-}
-
 resource "aws_security_group" "SG_SSH_IN_extern" {
-  count       = "${var.external ? lookup(var.amis_accesss,var.testOs) == "ssh" ? 1 : 0 : 0}"
+  count       = "${var.external ? 1 : 0 }"
   name        = "${local.resource_prefix}SG_SSH_IN_extern"
   description = "Allow SSH Management inbound traffic fuer Projekt ${var.project_name}"
   vpc_id      = "${data.terraform_remote_state.baseInfra.vpc_id}"
 
   ingress {
-    from_port       = "22"
-    to_port         = "22"
-    protocol        = "tcp"
-    cidr_blocks     = ["0.0.0.0/0"]
+    from_port   = "22"
+    to_port     = "22"
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   egress {
@@ -89,8 +28,9 @@ resource "aws_security_group" "SG_SSH_IN_extern" {
               )
               )}"
 }
+
 resource "aws_security_group" "SG_SSH_IN_intern" {
-  count       = "${var.external ? 0 : lookup(var.amis_accesss,var.testOs) == "ssh" ? 1 : 0}"
+  count       = "${var.external ? 0 : 1}"
   name        = "${local.resource_prefix}SG_SSH_IN_intern"
   description = "Allow SSH Management inbound traffic fuer Projekt ${var.project_name}"
   vpc_id      = "${data.terraform_remote_state.baseInfra.vpc_id}"
@@ -120,33 +60,32 @@ resource "aws_security_group" "SG_SSH_IN_intern" {
               )}"
 }
 
-# resource "aws_security_group" "SG_ICMP_IN" {
-#   count       = "${var.pingable ? 1 : 0}"
-#   name        = "${local.resource_prefix}SG_ICMP_IN"
-#   description = "Allow ICMP inbound traffic fuer Projekt ${var.project_name}"
-#   vpc_id      = "${data.terraform_remote_state.baseInfra.vpc_id}"
+resource "aws_security_group" "SG_Docker_IN_intern" {
+  name        = "${local.resource_prefix}SG_Docker_IN_intern"
+  description = "Allow Docker Socket inbound traffic fuer Projekt ${var.project_name}"
+  vpc_id      = "${data.terraform_remote_state.baseInfra.vpc_id}"
 
-#   ingress {
-#     from_port   = 0
-#     to_port     = 8
-#     protocol    = "icmp"
-#     cidr_blocks = ["0.0.0.0/0"]
-#   }
+  ingress {
+    from_port       = "2375"
+    to_port         = "2375"
+    protocol        = "tcp"
+    security_groups = ["${data.terraform_remote_state.baseInfra.bastion_sg}"]
+  }
 
-#   egress {
-#     from_port   = 0
-#     to_port     = 65535
-#     protocol    = "icmp"
-#     cidr_blocks = ["0.0.0.0/0"]
-#   }
+  egress {
+    from_port   = 0
+    to_port     = 65534
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 
-#   lifecycle {
-#     ignore_changes = ["tags.tf_created"]
-#   }
+  lifecycle {
+    ignore_changes = ["tags.tf_created"]
+  }
 
-#   tags = "${merge(local.common_tags,
-#             map(
-#               "Name", "${local.resource_prefix}SG_ICMP_IN"
-#               )
-#               )}"
-# }
+  tags = "${merge(local.common_tags,
+            map(
+              "Name", "${local.resource_prefix}SG_Docker_IN_intern"
+              )
+              )}"
+}

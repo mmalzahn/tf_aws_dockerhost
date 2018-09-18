@@ -25,11 +25,18 @@ data "terraform_remote_state" "baseInfra" {
   }
 }
 
+data "aws_ami" "dockerhostPackerAmi" {
+  filter {
+    name   = "tag:tf_packerid"
+    values = ["docker002"]
+  }
+
+  owners      = ["681337066511"]
+  most_recent = true
+}
 resource "random_integer" "randomScriptPort" {
-  #count = "${lookup(var.amis_accesss,var.testOs)=="rdp" ? var.anzahlInstanzen : 0}"
   min   = 12000
   max   = 14000
-  seed  = "${count.index}"
 }
 
 resource "random_string" "dnshostname" {
@@ -45,4 +52,42 @@ resource "random_id" "configId" {
 
 resource "random_id" "randomPart" {
   byte_length = 4
+}
+resource "random_integer" "randomDockerPort" {
+  min = 15001
+  max = 16000
+}
+data "template_file" "installscript" {
+  template = "${file("tpl/installdockerhost.tpl")}"
+
+  vars {
+    file_system_id = "${element(data.terraform_remote_state.baseInfra.efs_filesystem_id,0)}"
+    efs_directory  = "/efs"
+    project_id     = "${var.uni_id}"
+    user_id        = "${lower(random_string.dnshostname.result)}"
+  }
+}
+
+data "template_file" "startSshScript" {
+  count    = "${var.anzahlInstanzen}"
+  template = "${file("tpl/start_ssh.tpl")}"
+
+  vars {
+    random_port      = "${element(random_integer.randomScriptPort.*.result,count.index)}"
+    userid           = "${random_string.dnshostname.result}"
+    host_fqdn        = "${element(aws_route53_record.testmachine.*.fqdn,count.index)}"
+    bastionhost_fqdn = "${element(data.terraform_remote_state.baseInfra.bastion_dns,0)}"
+  }
+}
+
+data "template_file" "connectDockerSocket" {
+  template = "${file("tpl/connectDocker.tpl")}"
+
+  vars {
+    random_port      = "${random_integer.randomDockerPort.result}"
+    userid           = "${random_string.dnshostname.result}"
+    host_fqdn        = "${aws_route53_record.testmachine.fqdn}"
+    bastionhost_fqdn = "${element(data.terraform_remote_state.baseInfra.bastion_dns,0)}"
+    workspace        = "${terraform.workspace}"
+  }
 }
