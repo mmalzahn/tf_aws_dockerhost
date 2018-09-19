@@ -2,18 +2,17 @@ locals {
   common_tags {
     responsible     = "${var.tag_responsibel}"
     tf_managed      = 1
-    tf_project      = "dca:${terraform.workspace}:${random_id.randomPart.b64_url}:${replace(var.project_name," ","")}"
+    tf_project      = "dca:${terraform.workspace}:${random_string.projectId.result}:${replace(var.project_name," ","")}"
     tf_project_name = "DCA_${replace(var.project_name," ","_")}_${terraform.workspace}"
     tf_environment  = "${terraform.workspace}"
     tf_created      = "${timestamp()}"
     tf_runtime      = "${var.laufzeit_tage}"
     tf_responsible  = "${var.tag_responsibel}"
-    tf_configId     = "${random_id.configId.b64_url}"
   }
 
-  projId                = "${random_string.dnshostname.result}"
-  resource_prefix       = "${random_id.randomPart.b64_url}-${var.project_name}-${terraform.workspace}-"
-  resource_prefix_short = "${random_id.randomPart.b64_url}-${terraform.workspace}-"
+  projId                = "${random_string.projectId.result}"
+  resource_prefix       = "${random_string.projectId.result}-${var.project_name}-${terraform.workspace}-"
+  resource_prefix_short = "${random_string.projectId.result}-${terraform.workspace}-"
 }
 
 data "terraform_remote_state" "baseInfra" {
@@ -29,7 +28,7 @@ data "terraform_remote_state" "baseInfra" {
 data "aws_ami" "dockerhostPackerAmi" {
   filter {
     name   = "tag:tf_packerid"
-    values = ["docker002"]
+    values = ["docker001"]
   }
 
   owners      = ["681337066511"]
@@ -41,19 +40,11 @@ resource "random_integer" "randomScriptPort" {
   max = 14000
 }
 
-resource "random_string" "dnshostname" {
+resource "random_string" "projectId" {
   length  = 10
   special = false
   upper   = false
   number  = false
-}
-
-resource "random_id" "configId" {
-  byte_length = 16
-}
-
-resource "random_id" "randomPart" {
-  byte_length = 4
 }
 
 resource "random_integer" "randomDockerPort" {
@@ -68,7 +59,7 @@ data "template_file" "installscript" {
     file_system_id = "${element(data.terraform_remote_state.baseInfra.efs_filesystem_id,0)}"
     efs_directory  = "/efs"
     project_id     = "${var.uni_id}"
-    user_id        = "${lower(random_string.dnshostname.result)}"
+    user_id        = "${random_string.projectId.result}"
   }
 }
 
@@ -77,7 +68,7 @@ data "template_file" "startSshScript" {
 
   vars {
     random_port      = "${random_integer.randomScriptPort.result}"
-    userid           = "${random_string.dnshostname.result}"
+    userid           = "${random_string.projectId.result}"
     host_fqdn        = "${aws_route53_record.testmachine_intern.fqdn}"
     bastionhost_fqdn = "${element(data.terraform_remote_state.baseInfra.bastion_dns,0)}"
     workspace        = "${terraform.workspace}"
@@ -89,7 +80,7 @@ data "template_file" "connectDockerSocket" {
 
   vars {
     random_port      = "${random_integer.randomDockerPort.result}"
-    userid           = "${random_string.dnshostname.result}"
+    userid           = "${random_string.projectId.result}"
     host_fqdn        = "${aws_route53_record.testmachine_intern.fqdn}"
     bastionhost_fqdn = "${element(data.terraform_remote_state.baseInfra.bastion_dns,0)}"
     workspace        = "${terraform.workspace}"

@@ -3,7 +3,7 @@ resource "aws_instance" "testmachine" {
   ami                         = "${data.aws_ami.dockerhostPackerAmi.id}"
   instance_type               = "${var.instance_type}"
   subnet_id                   = "${var.external ? element(data.terraform_remote_state.baseInfra.subnet_ids_dmz, count.index):element(data.terraform_remote_state.baseInfra.subnet_ids_backend, count.index)}"
-  key_name                    = "${random_string.dnshostname.result}"
+  key_name                    = "${random_string.projectId.result}"
   associate_public_ip_address = "${var.external}"
   volume_tags                 = "${local.common_tags}"
   user_data                   = "${data.template_file.installscript.rendered}"
@@ -33,7 +33,7 @@ resource "aws_instance" "testmachine" {
 resource "aws_route53_record" "testmachine_intern" {
   allow_overwrite = "true"
   depends_on      = ["aws_instance.testmachine"]
-  name            = "${random_string.dnshostname.result}-intern"
+  name            = "${random_string.projectId.result}-intern"
   ttl             = "60"
   type            = "A"
   records         = ["${aws_instance.testmachine.private_ip}"]
@@ -44,7 +44,7 @@ resource "aws_route53_record" "testmachine_extern" {
   count           = "${var.external ? 1 : 0}"
   allow_overwrite = "true"
   depends_on      = ["aws_instance.testmachine"]
-  name            = "${random_string.dnshostname.result}-extern"
+  name            = "${random_string.projectId.result}-extern"
   ttl             = "60"
   type            = "A"
   records         = ["${aws_instance.testmachine.public_ip}"]
